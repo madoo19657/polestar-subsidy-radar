@@ -1,7 +1,7 @@
 # madoo · 폴스타 전기차 보조금 레이더
 
 내 지역에서 폴스타 보조금을 얼마 받는지(국비+지방비), 접수가 열려 있는지, 잔여가 얼마인지 보여주는 정적 대시보드.
-데이터 출처는 환경부 무공해차 통합누리집(ev.or.kr)이며, GitHub Actions 가 1시간마다 갱신합니다.
+데이터 출처는 환경부 무공해차 통합누리집(ev.or.kr)이며, GitHub Actions 가 하루 3회(한국시간 09:07 · 13:07 · 18:07 경) 갱신합니다.
 
 | 파일 | 역할 |
 |---|---|
@@ -9,7 +9,7 @@
 | `data.json` | 지역 160곳 상태 + 폴스타 모델별 금액 |
 | `scrape_ev.py` | ev.or.kr 수집 → data.json / index.html 재생성 |
 | `template.html` | 디자인 원본 (수정은 여기서, 수집기가 index.html 로 합침) |
-| `.github/workflows/update.yml` | 1시간마다 자동 수집·커밋 |
+| `.github/workflows/update.yml` | 하루 3회 자동 수집·커밋 |
 | `run_local.bat` | 내 PC 에서 수집·푸시 (Actions 접속이 막힐 때 대안) |
 
 ## GitHub 호스팅 + 자동 갱신 (1회 설정)
@@ -27,7 +27,7 @@
 
 ### 꼭 확인할 것
 - ev.or.kr 이 해외(GitHub 서버) 접속을 막거나 느리게 할 수 있습니다. 5번 수동 실행이 실패하면:
-  - `run_local.bat` 을 Windows 작업 스케줄러에 등록(예: 매시간)하거나
+  - `run_local.bat` 을 Windows 작업 스케줄러에 등록(예: 하루 3회)하거나
   - 집 PC 를 self-hosted runner 로 등록하세요.
 - 수집 결과가 비정상(지역 100곳 미만 등)이면 기존 파일을 그대로 둡니다. 화면 상단의 조회 시각으로 신선도를 확인할 수 있습니다.
 
