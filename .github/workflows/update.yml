@@ -28,6 +28,15 @@ jobs:
       - run: playwright install --with-deps chromium
       - name: Scrape
         run: python scrape_ev.py
+      - name: Upload debug files on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug
+          path: |
+            debug.png
+            debug.html.txt
+          if-no-files-found: ignore
       - name: Commit if changed
         run: |
           git config user.name "madoo-bot"

@@ -26,12 +26,29 @@ ROWS_JS = """(sel) => [...document.querySelectorAll(sel + ' .ag-row')]
   .sort((a,b)=>a.getAttribute('row-index')-b.getAttribute('row-index'))
   .map(r=>{const o={};r.querySelectorAll('[role=gridcell]').forEach(c=>o[c.getAttribute('col-id')]=c.innerText.replace(/\\s+/g,' ').trim());return o})"""
 
+DISMISS_JS = """() => {
+  document.querySelectorAll('.modal-container.is-active').forEach(m => {
+    const b = [...m.querySelectorAll('button')].find(x => /닫기|확인|오늘|close/i.test(x.innerText + (x.getAttribute('aria-label') || '')));
+    if (b) b.click();
+    m.classList.remove('is-active'); m.setAttribute('aria-hidden', 'true'); m.style.display = 'none';
+  });
+  document.body.classList.remove('modal-open');
+}"""
+
+
+def dismiss(pg):
+    """접속 시 자동으로 뜨는 안내 팝업(예: #alertCalcNotice)이 클릭을 가로채므로 닫는다"""
+    pg.evaluate(DISMISS_JS)
+    time.sleep(0.2)
+
+
 num = lambda s: int(re.sub(r"[^\d]", "", s or "") or 0)
 
 
 # ---------- 1) 지자체별 보조금 현황 ----------
 def scrape_status(pg):
     pg.goto(STATUS_URL, wait_until="networkidle")
+    dismiss(pg)
     pg.select_option("select[name=year1]", str(YEAR))
     pg.wait_for_selector(".ag-row")
     rows, seen = [], set()
@@ -40,6 +57,7 @@ def scrape_status(pg):
         if cur in seen:
             break
         seen.add(cur)
+        dismiss(pg)
         rows += pg.evaluate(ROWS_JS, "body")
         links = pg.query_selector_all(".pagination__link")
         idx = next((i for i, l in enumerate(links) if "selected" in (l.get_attribute("class") or "")), -1)
@@ -82,8 +100,10 @@ def aggregate(rows):
 def scrape_models(pg):
     """return (models, {"시도|지역": {모델index: [국비, 지방비, 전환국비, 전환지방비]}})"""
     pg.goto(MODEL_URL, wait_until="networkidle")
+    dismiss(pg)
     pg.select_option("#carTypeFilter", "11")
     pg.fill("#modelKeyword", BRAND_KEYWORD)
+    dismiss(pg)
     pg.click("#btnSearch")
     pg.wait_for_selector(".accordion-button")
     heads = pg.query_selector_all(".accordion-button")
@@ -95,6 +115,7 @@ def scrape_models(pg):
         sel = f"#carGrid_{rid}"
         rows = []
         for _ in range(2):  # 표가 늦게 그려지는 지역이 있어 한 번 더 시도
+            dismiss(pg)
             if h.get_attribute("aria-expanded") != "true":
                 h.click()
             try:
@@ -139,9 +160,23 @@ def main():
         b = p.chromium.launch()
         ctx = b.new_context(locale="ko-KR", viewport={"width": 1400, "height": 1000})
         pg = ctx.new_page()
-        agg = aggregate(scrape_status(pg))
-        models, pol = scrape_models(pg)
-        b.close()
+        pg.set_default_timeout(15000)
+        try:
+            agg = aggregate(scrape_status(pg))
+            print(f"[1/2] 보조금 현황 {len(agg)}곳 수집")
+            models, pol = scrape_models(pg)
+            print(f"[2/2] 폴스타 모델 {len(models)}개, 금액 있는 지역 {sum(1 for v in pol.values() if v)}곳")
+        except Exception:
+            # 실패 시점의 화면을 남겨 원인을 볼 수 있게 한다 (Actions 아티팩트로 업로드됨)
+            try:
+                pg.screenshot(path=str(HERE / "debug.png"), full_page=False)
+                (HERE / "debug.html.txt").write_text(pg.content()[:200000], encoding="utf-8")
+                print("현재 주소:", pg.url)
+            except Exception:
+                pass
+            raise
+        finally:
+            b.close()
     # 수집 결과가 비정상이면 기존 파일을 유지한다 (사이트 개편·차단 대비)
     if len(agg) < 100:
         sys.exit(f"보조금 현황 수집 이상({len(agg)}곳). 기존 파일 유지.")
