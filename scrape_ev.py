@@ -131,7 +131,7 @@ def scrape_models(pg):
         for _ in range(2):  # 표가 늦게 그려지는 지역이 있어 한 번 더 시도
             dismiss(pg)
             if h.get_attribute("aria-expanded") != "true":
-                h.click()
+                h.evaluate("e => e.click()")  # 보이지 않는 헤더도 JS 로 직접 클릭
             try:
                 pg.wait_for_function(
                     "(s)=>{const g=document.querySelector(s);return g&&(g.querySelector('.ag-row')||g.textContent.includes('조회된 내용이 없습니다'))}",
@@ -141,7 +141,10 @@ def scrape_models(pg):
             rows = pg.evaluate(ROWS_JS, sel)
             if rows:
                 break
-            h.click()
+            empty = pg.evaluate("(s)=>{const g=document.querySelector(s);return !!g&&g.textContent.includes('조회된 내용이 없습니다')}", sel)
+            if empty:
+                break  # 해당 지역에 등록된 모델 없음
+            h.evaluate("e => e.click()")
             time.sleep(0.3)  # 접었다 다시 펼침
         pol = {}
         for x in rows:
