@@ -166,7 +166,7 @@ footer ul{margin:8px 0 0;padding-left:1.1em}
 
   <footer>
     <ul>
-      <li>데이터 갱신: 하루 3회(오전 9시 · 오후 1시 · 오후 6시 경). 접수 상태(접수중·접수 예정 등)는 페이지를 연 시각 기준으로 계산하지만, 잔여 대수는 마지막 갱신 시점 값이라 실제와 다를 수 있습니다.</li>
+      <li>데이터 갱신: 평일 하루 3회(오전 9시 · 오후 1시 · 오후 6시 경)와 일요일 새벽 1회(정합성 검증). 지자체 접수·승인 처리가 평일 업무시간에 이뤄지기 때문입니다. 접수 상태(접수중·접수 예정 등)는 페이지를 연 시각 기준으로 계산하지만, 잔여 대수는 마지막 갱신 시점 값이라 실제와 다를 수 있습니다.</li>
       <li>출처: 환경부 무공해차 통합누리집(ev.or.kr) 지자체별 보조금 현황, 지자체별 차종·모델 보조금. 전기승용 민간 구매 기준.</li>
       <li>금액은 만원 단위입니다. 소계 = 국비 + 지방비이며, 전환지원금은 소계에 포함되지 않습니다.</li>
       <li>잔여 대수(선정잔여 = 공고 − 선정)는 브랜드별이 아니라 지자체 전체 수치입니다. 실제 신청 가능 대수와 다를 수 있습니다.</li>
@@ -276,7 +276,7 @@ function paint(){
 function start(raw){
   MODELS=raw.models||[];DATA=prep(raw);
   const cov=MODELS.map((_,i)=>DATA.filter(r=>r.pol[i]).length);S.m=Math.max(0,cov.indexOf(Math.max(...cov)));
-  $("asof").innerHTML=new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(raw.asOf))+" 조회<br>하루 3회 갱신 · 접수 상태는 열어본 시각 기준";
+  $("asof").innerHTML=new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(raw.asOf))+" 조회<br>평일 3회·일요일 새벽 갱신 · 접수 상태는 열어본 시각 기준";
   if(!MODELS.length){$("res").innerHTML='<div class="empty"><b>폴스타 금액 데이터가 아직 없습니다</b>수집이 끝나면 이곳에 표시됩니다.</div>';paintTable();return}
   buildPickers();$("q").oninput=paintTable;paint();
 }
