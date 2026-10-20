@@ -42,15 +42,30 @@ def dismiss(pg):
     time.sleep(0.2)
 
 
+def open_page(pg, url, ready_selector):
+    """해외(GitHub 서버)에서는 ev.or.kr 이 느려 networkidle 이 오지 않는다 → DOM 로드 후 필요한 요소만 기다리고 3회 재시도"""
+    last = None
+    for attempt in range(1, 4):
+        try:
+            pg.goto(url, wait_until="domcontentloaded", timeout=90000)
+            pg.wait_for_selector(ready_selector, timeout=90000)
+            dismiss(pg)
+            return
+        except PWTimeout as e:
+            last = e
+            print(f"  접속 재시도 {attempt}/3: {url.split('/')[-1]}")
+            time.sleep(5)
+    raise last
+
+
 num = lambda s: int(re.sub(r"[^\d]", "", s or "") or 0)
 
 
 # ---------- 1) 지자체별 보조금 현황 ----------
 def scrape_status(pg):
-    pg.goto(STATUS_URL, wait_until="networkidle")
-    dismiss(pg)
+    open_page(pg, STATUS_URL, "select[name=year1]")
     pg.select_option("select[name=year1]", str(YEAR))
-    pg.wait_for_selector(".ag-row")
+    pg.wait_for_selector(".ag-row", timeout=90000)
     rows, seen = [], set()
     for _ in range(80):
         cur = pg.inner_text(".pagination__link--selected").strip()
@@ -99,13 +114,12 @@ def aggregate(rows):
 # ---------- 2) 폴스타 모델별 보조금 ----------
 def scrape_models(pg):
     """return (models, {"시도|지역": {모델index: [국비, 지방비, 전환국비, 전환지방비]}})"""
-    pg.goto(MODEL_URL, wait_until="networkidle")
-    dismiss(pg)
+    open_page(pg, MODEL_URL, "#btnSearch")
     pg.select_option("#carTypeFilter", "11")
     pg.fill("#modelKeyword", BRAND_KEYWORD)
     dismiss(pg)
     pg.click("#btnSearch")
-    pg.wait_for_selector(".accordion-button")
+    pg.wait_for_selector(".accordion-button", timeout=90000)
     heads = pg.query_selector_all(".accordion-button")
     models, out = [], {}
     for h in heads:
@@ -160,7 +174,7 @@ def main():
         b = p.chromium.launch()
         ctx = b.new_context(locale="ko-KR", viewport={"width": 1400, "height": 1000})
         pg = ctx.new_page()
-        pg.set_default_timeout(15000)
+        pg.set_default_timeout(45000)
         try:
             agg = aggregate(scrape_status(pg))
             print(f"[1/2] 보조금 현황 {len(agg)}곳 수집")
