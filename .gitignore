@@ -3,3 +3,5 @@ __pycache__/
 shot*.py
 debug.png
 debug.html.txt
+!og-image.png
+blog/
